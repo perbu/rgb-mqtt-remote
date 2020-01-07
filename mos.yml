@@ -1,0 +1,37 @@
+author: Per Buer
+description: Mongoose OS software to enable cloud (mqtt/http) control over ws2812b/neopixel lights through an ESP32
+version: 0.1
+
+platform: esp32
+
+includes:
+  - include
+
+tags:
+  - c
+
+sources:
+  - src
+
+filesystem:
+  - fs
+
+libs:
+  - origin: https://github.com/mongoose-os-libs/neopixel
+  - origin: https://github.com/mongoose-os-libs/boards
+  - origin: https://github.com/mongoose-os-libs/ca-bundle
+  - origin: https://github.com/mongoose-os-libs/rpc-service-config
+  - origin: https://github.com/mongoose-os-libs/rpc-service-fs
+  - origin: https://github.com/mongoose-os-libs/rpc-uart
+  - origin: https://github.com/mongoose-os-libs/wifi
+  - origin: https://github.com/mongoose-os-libs/aws
+  - origin: https://github.com/mongoose-os-libs/dash 
+  - origin: https://github.com/mongoose-os-libs/rpc-service-ota
+  
+  
+manifest_version: 2017-09-29
+
+config_schema:
+  - ["pins.ledStrip", "i", 23, { title: "GPIO pin for LED strip" }]
+  - ["pins.statusLed", "i", 22, { title: "LED for status."}]
+  - ["leds.number", "i", 40, {title: "Number of LEDS on the strip"}]
