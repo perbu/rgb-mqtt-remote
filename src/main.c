@@ -2,7 +2,6 @@
 #include <strings.h>
 #include <ctype.h>
 
-
 #include "mgos.h"
 
 #include "mgos_mqtt.h"
@@ -25,71 +24,84 @@ struct pixel
     int r;
     int g;
     int b;
-    int x; // blink/fade the led if set. Higher values means faster blinking.
+    int x; // blink/fade the led if set
 };
-
 static struct pixel *pixels;           // My array of pixels.
 static struct mgos_neopixel *my_strip; // Low-level led strip.
 
-
-
 static void turn_on_led(void *param)
 {
+    LOG(LL_INFO, ("LED ON"));
     mgos_gpio_write(mgos_sys_config_get_pins_statusLed(), 1);
 }
-
 static void turn_off_led(void *param)
 {
+    LOG(LL_INFO, ("LED OFF"));
     mgos_gpio_write(mgos_sys_config_get_pins_statusLed(), 0);
 }
 
-void blink_led() {
+void blink_led()
+{
+
     turn_on_led(NULL);
-    mgos_set_timer(100, 0, turn_off_led, 0);
+    mgos_set_timer(100, 0, turn_off_led, NULL);
 }
 
+/* 
+    Sync the LED strip with our internal state.
+
+    param: int fade - fade the blinking pixel this much.
+*/
 void sync_and_show(int fade)
 {
     for (int i = 0; i < mgos_sys_config_get_leds_number(); i++)
     {
-        LOG(LL_DEBUG, ("Syncing pixel %d (%d:%d:%d) to %d%%", i,
-                      pixels[i].r, pixels[i].g, pixels[i].b, fade));
-        mgos_neopixel_set(my_strip, i,
-                          pixels[i].r * fade / 100,
-                          pixels[i].g * fade / 100,
-                          pixels[i].b * fade / 100);
+        LOG(LL_VERBOSE_DEBUG, ("Syncing pixel %d (%d:%d:%d) to %d%%", i,
+                               pixels[i].r, pixels[i].g, pixels[i].b, fade));
+        if (pixels[i].x)
+        {
+            mgos_neopixel_set(my_strip, i,
+                              pixels[i].r * fade / 100,
+                              pixels[i].g * fade / 100,
+                              pixels[i].b * fade / 100);
+        }
+        else
+        {
+            mgos_neopixel_set(my_strip, i,
+                              pixels[i].r,
+                              pixels[i].g,
+                              pixels[i].b);
+        }
     }
-    LOG(LL_DEBUG, ("Showing new pixels"));
+    LOG(LL_VERBOSE_DEBUG, ("Showing new pixels (mgos_neopixel_show)"));
     mgos_neopixel_show(my_strip);
 }
-
 
 // Test the leds
-void init_animation() {
+void init_animation()
+{
     for (int i = 0; i < mgos_sys_config_get_leds_number(); i++)
     {
-        mgos_neopixel_set(my_strip,i,64,0,0);
+        mgos_neopixel_set(my_strip, i, 64, 0, 0);
+        mgos_neopixel_show(my_strip);
+        mgos_msleep(20);
     }
-    mgos_neopixel_show(my_strip);
-
-    mgos_msleep(1000);
     for (int i = 0; i < mgos_sys_config_get_leds_number(); i++)
     {
-        mgos_neopixel_set(my_strip,i,0,64,0);
+        mgos_neopixel_set(my_strip, i, 0, 64, 0);
+        mgos_neopixel_show(my_strip);
+        mgos_msleep(20);
     }
-    mgos_neopixel_show(my_strip);
-    mgos_msleep(1000);
     for (int i = 0; i < mgos_sys_config_get_leds_number(); i++)
     {
-        mgos_neopixel_set(my_strip,i,0,0,64);
+        mgos_neopixel_set(my_strip, i, 0, 0, 64);
+        mgos_neopixel_show(my_strip);
+        mgos_msleep(20);
     }
-    mgos_neopixel_show(my_strip);
-    mgos_msleep(1000);
+    mgos_msleep(500);
     // Reset back to stored state.
     sync_and_show(100);
-
 }
-
 
 void set_pixel(int number, char color, int value)
 {
@@ -104,24 +116,22 @@ void set_pixel(int number, char color, int value)
     case 'b':
         pixels[number].b = value;
         break;
+    case 'x':
+        pixels[number].x = value;
     default:
         LOG(LL_ERROR, ("Internal brain damage - unknown color %c", color));
     }
 }
 
-
-
 /* 
   Callback hooked on timer to blink the RGB leds.
 
-  Callback 50 timer per second.
-  Every time increase it with 20. When 100 or above switch
+  Callback 30 times per second.
 */
 
 static void blink_cb(void *param)
 {
-    LOG(LL_DEBUG, ("Entering blink: %d / %s", blinkstate, blink_up ? "true" : "false"));
-    blinkstate += mgos_sys_config_get_leds_blinkstep() * blink_up ? 1 : -1;
+    blinkstate += mgos_sys_config_get_leds_blinkstep() * (blink_up ? 1 : -1);
     if (blinkstate >= 100)
     {
         blink_up = false;
@@ -132,10 +142,9 @@ static void blink_cb(void *param)
         blinkstate = 0;
         blink_up = true;
     }
-    LOG(LL_DEBUG, ("Blink now: %d / %s", blinkstate, blink_up ? "true" : "false"));
+    LOG(LL_VERBOSE_DEBUG, ("Blink now: %d / %s", blinkstate, blink_up ? "true" : "false"));
     sync_and_show(blinkstate);
 }
-
 
 // When we're connected to the shadow, report our current state.
 // This may generate shadow delta on the cloud, and the cloud will push
@@ -145,20 +154,18 @@ static void connected_cb(int ev, void *ev_data, void *userdata)
 {
     LOG(LL_INFO, ("Connected to our shadow device. Enabling blink."));
     blink_led();
-    // Enable the RGB blinking.
-    /*
+
+    // Turn on blinking.
     mgos_set_timer(mgos_sys_config_get_leds_blinkdelay(),
                    MGOS_TIMER_REPEAT, blink_cb, NULL);
 
-    */
-    // We might need to do something silly to trigger a update.
-    // mgos_shadow_updatef(0, "{on: %B}", s_light_on); /* Report status */
-    (void)ev;
+    * /
+        // We might need to do something silly to trigger a update.
+        // mgos_shadow_updatef(0, "{on: %B}", s_light_on); /* Report status */
+        (void)ev;
     (void)ev_data;
     (void)userdata;
 }
-
-
 
 static void j_cb(void *callback_data,
                  const char *name, size_t name_len,
@@ -218,6 +225,5 @@ enum mgos_app_init_result mgos_app_init(void)
     blink_led();
     init_animation();
     LOG(LL_INFO, ("Init hopefully successful"));
-
     return MGOS_APP_INIT_SUCCESS;
 }
