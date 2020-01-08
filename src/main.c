@@ -4,7 +4,6 @@
 
 #include "mgos.h"
 
-#include "mgos_mqtt.h"
 #include "mgos_ro_vars.h"
 #include "mgos_shadow.h"
 #include "mgos_app.h"
@@ -159,10 +158,9 @@ static void connected_cb(int ev, void *ev_data, void *userdata)
     mgos_set_timer(mgos_sys_config_get_leds_blinkdelay(),
                    MGOS_TIMER_REPEAT, blink_cb, NULL);
 
-    * /
-        // We might need to do something silly to trigger a update.
-        // mgos_shadow_updatef(0, "{on: %B}", s_light_on); /* Report status */
-        (void)ev;
+    // We might need to do something silly to trigger a update.
+    // mgos_shadow_updatef(0, "{on: %B}", s_light_on); /* Report status */
+    (void)ev;
     (void)ev_data;
     (void)userdata;
 }
