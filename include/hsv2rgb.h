@@ -1,7 +1,4 @@
-#include <iostream>
-#include <cmath> // Needed for fmod()
-
-using namespace std;
+#include <math.h>
 
 /*
  * H(Hue): 0 - 360 degree (integer)
