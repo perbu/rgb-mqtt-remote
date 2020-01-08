@@ -35,3 +35,5 @@ config_schema:
   - ["pins.ledStrip", "i", 23, { title: "GPIO pin for LED strip" }]
   - ["pins.statusLed", "i", 22, { title: "LED for status."}]
   - ["leds.number", "i", 40, {title: "Number of LEDS on the strip"}]
+  - ["leds.blinkdelay", "i", 50, {title: "Number of ms between each blink wakeup"} ]
+  - ["leds.blinkstep", "i", 5, {title: "How big are the blink steps"}]
